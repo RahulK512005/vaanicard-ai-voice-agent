@@ -23,25 +23,6 @@
 
 ---
 
-## 📑 Table of Contents
-
-- [System Architecture](#-system-architecture)
-- [Key Capabilities](#-key-capabilities)
-- [Voice Interaction Pipeline](#-voice-interaction-pipeline)
-- [Hinglish & Natural Language Understanding](#-hinglish--natural-language-understanding)
-- [Deterministic Pricing Engine](#-deterministic-pricing-engine)
-- [FAISS Vector Store RAG Retrieval](#-faiss-vector-store-rag-retrieval)
-- [Product Catalog](#-product-catalog)
-- [Shopify-Ready Abstraction](#-shopify-ready-abstraction)
-- [Project Directory Structure](#-project-directory-structure)
-- [Getting Started](#-getting-started)
-- [REST API Reference](#-rest-api-reference)
-- [Automated Testing Suite (23 Tests)](#-automated-testing-suite-23-tests)
-- [Manual Voice AI Test Checklist](#-manual-voice-ai-test-checklist)
-- [Deployment Guide](#-deployment-guide)
-
----
-
 ## 🏗️ System Architecture
 
 ```mermaid
