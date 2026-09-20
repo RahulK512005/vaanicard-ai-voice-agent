@@ -1,234 +1,485 @@
-# VaaniCart AI (वाणीकार्ट)
+<div align="center">
+
+# 🎙️ VaaniCart AI (वाणीकार्ट)
+### *Next-Generation Full-Stack Voice AI Shopping Assistant for Indian E-Commerce*
+
 > **"Your AI Shopping Assistant — Just Ask."**
 
-A production-quality full-stack **AI Voice Shopping Assistant** built for modern Indian e-commerce. VaaniCart AI enables voice-first shopping experiences in natural English and Hinglish, combining browser Speech-to-Text (STT), deterministic backend pricing computation, FAISS vector store RAG for product catalogs, guardrail validation, and euphonic Text-to-Speech (TTS).
+[![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38B2AC?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![FAISS](https://img.shields.io/badge/Vector_Store-FAISS-orange)](https://github.com/facebookresearch/faiss)
+[![Gemini](https://img.shields.io/badge/LLM-Google_Gemini-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
+[![Tests](https://img.shields.io/badge/Tests-23%20Passing-brightgreen?logo=pytest&logoColor=white)](backend/tests)
+[![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 
 ---
 
-## 1. System Architecture
+**VaaniCart AI** is a production-quality full-stack Voice Commerce assistant built to demonstrate merchant-facing Voice AI capabilities. It enables natural multi-turn voice shopping in **English** and **Hinglish**, featuring real-time Speech-to-Text (STT), deterministic backend pricing calculations, FAISS vector store RAG, guardrail validation, and euphonic Text-to-Speech (TTS) with speech interruption.
+
+</div>
+
+---
+
+## 📑 Table of Contents
+
+- [System Architecture](#-system-architecture)
+- [Key Capabilities](#-key-capabilities)
+- [Voice Interaction Pipeline](#-voice-interaction-pipeline)
+- [Hinglish & Natural Language Understanding](#-hinglish--natural-language-understanding)
+- [Deterministic Pricing Engine](#-deterministic-pricing-engine)
+- [FAISS Vector Store RAG Retrieval](#-faiss-vector-store-rag-retrieval)
+- [Product Catalog](#-product-catalog)
+- [Shopify-Ready Abstraction](#-shopify-ready-abstraction)
+- [Project Directory Structure](#-project-directory-structure)
+- [Getting Started](#-getting-started)
+- [REST API Reference](#-rest-api-reference)
+- [Automated Testing Suite (23 Tests)](#-automated-testing-suite-23-tests)
+- [Manual Voice AI Test Checklist](#-manual-voice-ai-test-checklist)
+- [Deployment Guide](#-deployment-guide)
+
+---
+
+## 🏗️ System Architecture
 
 ```mermaid
 flowchart TD
-    User([User Voice / Text]) --> STT[Browser Web Speech API<br/>en-IN / hi-IN]
-    STT --> Frontend[React + TypeScript + Vite + Tailwind CSS]
+    User([User Speaks in English / Hinglish]) --> STT[Browser Web Speech API<br/>Continuous Stream + VAD]
+    STT --> Frontend[React 19 + TypeScript + Vite + Tailwind UI]
     Frontend --> ChatAPI[FastAPI POST /api/chat]
 
     subgraph Backend [FastAPI Backend Service]
-        ChatAPI --> IntentNLU[Intent & Entity Classifier<br/>Hinglish + English NLU]
-        IntentNLU --> StateMgr[Conversation State Manager<br/>Multi-turn memory & filter accumulator]
+        ChatAPI --> IntentNLU[Hinglish & English NLU Engine<br/>Intent & Entity Extractor]
+        IntentNLU --> StateMgr[Conversation State Manager<br/>Session Memory & Filter Accumulation]
         
         StateMgr --> CatalogRouter{Query Router}
-        CatalogRouter -->|Catalog Filtering| Provider[ProductProvider Interface<br/>MockCatalog / ShopifyBlueprint]
-        CatalogRouter -->|Feature / Spec Qs| RAG[RAG Service<br/>FAISS Vector Store + TF-IDF]
-        CatalogRouter -->|Discounts / Coupons| PricingEngine[Authoritative Pricing Engine<br/>Deterministic Python Calculations]
-        CatalogRouter -->|Side-by-side| CompareEngine[Product Comparison Engine]
+        CatalogRouter -->|Catalog Filtering| Provider[ProductProvider Interface<br/>MockProductProvider / ShopifyBlueprint]
+        CatalogRouter -->|Technical Specs| RAG[RAG Service<br/>FAISS Vector Store + TF-IDF]
+        CatalogRouter -->|Discounts & Coupons| PricingEngine[Deterministic Pricing Engine<br/>Authoritative Python Calculations]
+        CatalogRouter -->|Product Comparison| CompareEngine[Product Comparison Engine]
 
         Provider --> ContextAgg[Context Aggregator]
         RAG --> ContextAgg
         PricingEngine --> ContextAgg
         CompareEngine --> ContextAgg
 
-        ContextAgg --> LLM[Voice Response Generator<br/>Gemini / OpenAI / Heuristic Local Agent]
-        LLM --> Guardrails[Validation Guardrails<br/>Sentence length & Price authenticity check]
+        ContextAgg --> LLM[Voice Response Generator<br/>Gemini 1.5 Flash / OpenAI / Local Heuristic]
+        LLM --> Guardrails[Validation Guardrails<br/>Sentence Length & Price Truth Verification]
     end
 
-    Guardrails --> VoiceFormatter[Voice Service<br/>SSML & Phonetic normalization]
+    Guardrails --> VoiceFormatter[Voice Service<br/>Phonetic INR Normalization & SSML]
     VoiceFormatter --> ChatAPI
-    ChatAPI --> TTS[Browser SpeechSynthesis API<br/>Natural voice playback & interrupt]
-    TTS --> UserAudio([Spoken Audio Output])
+    ChatAPI --> TTS[Browser SpeechSynthesis API<br/>Euphoric Voice Playback]
+    TTS --> UserAudio([Spoken Audio Output with Interrupt Support])
 ```
 
 ---
 
-## 2. Core Capabilities & Highlights
+## ✨ Key Capabilities
 
-1. **True Voice-First Interaction**:
-   - Central animated microphone button with real-time states: `IDLE`, `LISTENING`, `PROCESSING`, `SPEAKING`, `ERROR`.
-   - Live streaming speech transcript with interim results.
-   - Immediate audio interruption capability (tapping the mic or clicking "Stop Spoken Audio" halts playback instantly).
-2. **Bilingual Hinglish & English Support**:
-   - Understands native Indian shopping expressions: *"Running shoes dikhao under 3000"*, *"Mujhe black sneakers chahiye"*, *"Iska discount kitna hai?"*, *"Ye shoes size 9 mein available hai kya?"*, *"Budget 2500 hai, kuch achha suggest karo"*.
-   - Never forces robotic translation into formal English.
+1. **Genuine Voice-First Experience**:
+   - Central animated microphone button with states: `IDLE`, `LISTENING`, `PROCESSING`, `SPEAKING`, `ERROR`.
+   - Continuous speech recognition with **Voice Activity & Silence Detection (1.6s timeout)** so you are never cut off mid-sentence.
+   - Dedicated **"Done Speaking (Send Now)"** button for instant manual submission.
+   - Immediate **Audio Interruption**: tapping the mic or clicking "Stop Spoken Audio" halts speech output instantly.
+2. **Native Hinglish Support**:
+   - Seamlessly understands natural Indian shopping idioms (*"Running shoes dikhao under 3000"*, *"Mujhe black sneakers chahiye"*, *"Iska discount kitna hai?"*, *"Ye shoes size 9 mein available hai kya?"*).
+   - Preserves user conversational tone without forced translation into formal English.
+   - Dialect switcher in header: toggle between `🇮🇳 Hinglish / English (en-IN)` and `🇮🇳 Hindi (hi-IN)`.
 3. **Deterministic Backend Pricing Engine (No LLM Math)**:
-   - All discounts, MRP savings, coupons (`VAANI100`, `FESTIVE20`, `WELCOME50`), and GST calculations are strictly computed in Python backend logic.
-   - LLMs receive verified calculations and are forbidden from inventing or computing authoritative totals.
+   - **Zero LLM Price Hallucination**: base prices, MRP discounts, coupons (`VAANI100`, `FESTIVE20`, `WELCOME50`), and GST are computed authoritatively in pure Python backend logic.
 4. **FAISS Vector Store RAG Retrieval**:
-   - Product catalog specifications, dimensions, materials, and battery life are chunked and indexed into FAISS (`IndexFlatIP`).
-   - Answers technical queries (*"Which headphones have noise cancellation?"*, *"Which laptop has the best battery life?"*) using strictly grounded catalog chunks.
-5. **Shopify-Ready Architecture**:
-   - Clean `ProductProvider` abstract base class.
-   - `MockProductProvider` (in-memory indexed catalog of 42+ products).
-   - Documented `ShopifyProductProvider` GraphQL blueprint for swapping in Shopify Storefront API.
+   - Technical specifications, dimensions, battery life, and materials are chunked and indexed into FAISS (`IndexFlatIP`).
+   - Answers questions like *"Which headphones have noise cancellation?"* or *"Which laptop has the best battery life?"* strictly using catalog ground truth.
+5. **Multi-Turn Conversational Memory**:
+   - Retains context across turns (e.g. Turn 1: *"Mujhe running shoes chahiye"* $\rightarrow$ Turn 2: *"Under 3000"* $\rightarrow$ Turn 3: *"Iska discount kitna hai?"* retains the active product).
 6. **Observability & Developer Inspector**:
-   - Real-time dev panel inspecting detected intent, extracted entities, pipeline latencies (intent, retrieval, pricing, LLM, validation), RAG sources, and prompt version.
-7. **23 Automated Pytest Tests**:
-   - Full test suite covering product search, pricing calculation, coupon engine, Hinglish normalization, RAG retrieval, response validation, and multi-turn state.
+   - Real-time collapsible dev drawer showing detected intent, extracted entities, latency breakdown (intent, retrieval, pricing, LLM, validation, total), authoritative pricing data, RAG sources, and active prompt versions.
+7. **Production-Ready & Shopify-Abstracted**:
+   - Clean `ProductProvider` interface ready to swap `MockProductProvider` for `ShopifyProductProvider` via Shopify Storefront GraphQL API.
 
 ---
 
-## 3. Tech Stack
+## 🎙️ Voice Interaction Pipeline
 
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, Lucide Icons, Web Speech API (STT), SpeechSynthesis API (TTS).
-- **Backend**: Python 3.11+, FastAPI, Pydantic v2, Pydantic-Settings, Uvicorn.
-- **AI & RAG**: Google Gemini API (`google-generativeai`), OpenAI API, FAISS (`faiss-cpu`), Scikit-Learn.
-- **Testing**: Pytest, Asyncio.
+### 1. Continuous Speech Recognition & VAD
+The frontend uses the Web Speech API with `continuous = true`. To solve the classic issue of voice assistants cutting users off when taking a breath, VaaniCart AI implements an intelligent **Silence Debounce Detector**:
+- Captures live audio stream and displays interim words in real time.
+- Resets a 1.6-second timer whenever the user speaks.
+- Only finalizes and dispatches the query once the user has stopped speaking for a full 1.6 seconds, or if the user clicks "Done Speaking".
 
----
-
-## 4. Product Catalog
-
-Contains 42+ realistic products across 8 categories with Indian Rupee (₹) pricing, realistic descriptions, sizes, colors, ratings, stock, and tags:
-1. **Running Shoes** (Sprint X, Runner Pro Cloud Stride, Pace Aero Reflex, Marathon Elite Carbon, TrailGrip 4X, LiteFlow Slip-On)
-2. **Sneakers** (Urban Retro Classic, Shadow Stealth Mid-Top, Chunky Glide, Pulse High Canvas, Solar Wave)
-3. **Headphones** (AcousticPro 800 Hybrid ANC, BassMaster Studio 500, SonicAir ANC Earbuds, EchoPulse, AeroBeats Gaming)
-4. **Smart Watches** (Chronos Pulse AMOLED, FitTrack Elite GPS, Aura Luxe Metal Mesh, Verve Neo Band, Titanium Explorer)
-5. **Backpacks** (TrailBlazer 35L Rucksack, CommuteShield Anti-Theft, Metro Slim Brief-Pack, CampMaster 55L, Campus Canvas)
-6. **T-Shirts** (Breeze Supima Cotton, AeroDry Performance, Vintage Heavyweight Graphic, Luxe Pique Polo, Tri-Blend Muscle)
-7. **Laptops** (AeroBook Ultra 14 OLED, TitanForge 15 Gaming RTX 4060, Nova Air 13, IdeaPro 15, FlexBook 360 2-in-1)
-8. **Mobile Accessories** (MagGrip 10k PowerBank, 65W GaN III Fast Charger, ArmorFlex 100W Cable, AutoGrip Car Mount, GripShield Case, 7-in-1 USB-C Hub)
+### 2. Spoken Audio Normalization
+Before the text is fed to Text-to-Speech (TTS):
+- Formats Indian Rupee values: `₹2,499` $\rightarrow$ *"2,499 rupees"*.
+- Expands technical acronyms for natural phonetic pronunciation:
+  - `ANC` $\rightarrow$ *"Active Noise Cancellation"*
+  - `TWS` $\rightarrow$ *"True Wireless"*
+  - `GaN` $\rightarrow$ *"Gallium Nitride"*
+  - `AMOLED` $\rightarrow$ *"Am-o-led"*
+- Enforces a 2–4 sentence brevity rule, stripping bullet points and URLs.
 
 ---
 
-## 5. Setup & Local Development
+## 🗣️ Hinglish & Natural Language Understanding
+
+VaaniCart AI natively understands both English and colloquial Roman-script Hindi (Hinglish):
+
+| User Spoken Query | Detected Intent | Extracted Entities |
+|---|---|---|
+| *"Running shoes dikhao under 3000"* | `product_search` | Category: `Running Shoes`, Max Price: `₹3,000` |
+| *"Mujhe black sneakers chahiye"* | `product_search` | Category: `Sneakers`, Color: `Black` |
+| *"Iska discount kitna hai?"* | `discount_query` | Refers to `current_product_context` |
+| *"Ye shoes size 9 mein available hai kya?"* | `availability_query` | Size: `9`, checks active product stock |
+| *"Budget 2500 hai, kuch achha suggest karo"* | `product_recommendation` | Max Price: `₹2,500`, Min Rating: `4.2` |
+| *"Compare Sprint X and Runner Pro"* | `product_comparison` | Targets: `[shoe_001, shoe_002]` |
+| *"Which headphones have noise cancellation?"* | `product_details` (RAG) | FAISS retrieval for `ANC` / `Noise Cancellation` |
+
+---
+
+## 💰 Deterministic Pricing Engine
+
+The LLM is **never allowed** to calculate authoritative prices or discounts. All math is performed deterministically in `app/services/pricing_service.py`:
+
+```python
+original_mrp = product.original_price
+base_price = product.price
+unit_discount_amount = max(0, original_mrp - base_price)
+unit_discount_percentage = int(round((unit_discount_amount / original_mrp) * 100))
+final_payable = max(0, (base_price * quantity) - coupon_discount)
+```
+
+### Active Coupon Codes
+- **`VAANI100`**: Flat ₹100 OFF on orders $\ge$ ₹999.
+- **`FESTIVE20`**: 20% OFF up to ₹500 on orders $\ge$ ₹1,499.
+- **`WELCOME50`**: Flat ₹50 OFF on orders $\ge$ ₹499.
+
+---
+
+## 🔍 FAISS Vector Store RAG Retrieval
+
+Product descriptions, technical specifications, and key features are chunked into semantic passages on startup and embedded using L2-normalized vector embeddings into FAISS (`IndexFlatIP`):
+
+```python
+# Chunk creation for semantic vector indexing
+chunk_feat = f"Product {p.name} Specifications: {'; '.join(p.features)}. Colors: {p.color}. Sizes: {p.sizes}."
+faiss.normalize_L2(tfidf_matrix)
+index = faiss.IndexFlatIP(dim)
+index.add(tfidf_matrix)
+```
+
+When answering queries about specific attributes (e.g. *"Which laptop has the best battery life?"* or *"Are there waterproof backpacks?"*), the RAG pipeline retrieves the top-4 chunks and injects strictly verified context into the LLM prompt.
+
+---
+
+## 📦 Product Catalog
+
+The seed catalog in `backend/app/data/products.json` contains **42+ realistic products** across 8 Indian e-commerce categories:
+
+1. **Running Shoes**: Sprint X, Runner Pro Cloud Stride, Pace Aero Reflex, Marathon Elite Carbon, TrailGrip 4X, LiteFlow Slip-On
+2. **Sneakers**: Urban Retro Classic Low, Shadow Stealth Mid-Top, Chunky Glide Dad Sneaker, Pulse High Canvas, Solar Wave
+3. **Headphones**: AcousticPro 800 Hybrid ANC, BassMaster Studio 500, SonicAir ANC Earbuds, EchoPulse, AeroBeats Gaming
+4. **Smart Watches**: Chronos Pulse AMOLED, FitTrack Elite GPS, Aura Luxe Metal Mesh, Verve Neo Band, Titanium Explorer
+5. **Backpacks**: TrailBlazer 35L Rucksack, CommuteShield Anti-Theft, Metro Slim Brief-Pack, CampMaster 55L, Campus Classic
+6. **T-Shirts**: Breeze Supima Cotton, AeroDry Performance, Vintage Heavyweight Graphic, Luxe Pique Polo, Tri-Blend Gym Tank
+7. **Laptops**: AeroBook Ultra 14 OLED, TitanForge 15 Gaming RTX 4060, Nova Air 13, IdeaPro 15, FlexBook 360 2-in-1
+8. **Mobile Accessories**: MagGrip 10k PowerBank, 65W GaN III Fast Charger, ArmorFlex 100W Cable, AutoGrip Car Mount, GripShield Case, 7-in-1 USB-C Hub
+
+---
+
+## 🔌 Shopify-Ready Abstraction
+
+To support switching from mock seed data to a live Shopify store without modifying any conversational or shopping logic:
+
+- **`ProductProvider`** (`backend/app/services/providers/product_provider.py`): Abstract Base Class declaring `search()`, `get_by_id()`, `get_by_ids()`, `get_categories()`, `get_all()`.
+- **`MockProductProvider`**: Current implementation serving the rich in-memory catalog.
+- **`ShopifyProductProvider`** (`backend/app/services/providers/shopify_provider.py`): Production blueprint using Shopify Storefront GraphQL queries to map Shopify products, variants, and metafields to internal models.
+
+To switch to Shopify in production:
+```env
+PRODUCT_PROVIDER=shopify
+SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
+SHOPIFY_STOREFRONT_ACCESS_TOKEN=shpat_xxxxxxxxxxxxxxxx
+```
+
+---
+
+## 📁 Project Directory Structure
+
+```
+vaanicart-ai-voice-agent/
+├── backend/
+│   ├── app/
+│   │   ├── main.py                  # FastAPI application entry point & lifecycle
+│   │   ├── api/routes/
+│   │   │   ├── chat.py              # Master voice pipeline endpoint (/api/chat)
+│   │   │   ├── products.py          # Product search and details
+│   │   │   ├── pricing.py           # Deterministic price & coupon calculation
+│   │   │   ├── compare.py           # Product comparison matrix
+│   │   │   ├── recommend.py         # Recommendation engine
+│   │   │   ├── rag.py               # Direct semantic RAG retrieval
+│   │   │   ├── conversation.py      # Multi-turn session state API
+│   │   │   └── health.py            # Health check endpoint (/health)
+│   │   ├── core/config.py           # Pydantic Settings (.env configuration)
+│   │   ├── data/products.json       # 42+ realistic products seed data
+│   │   ├── models/                  # Pydantic models (Product, Conversation)
+│   │   ├── schemas/                 # Request & Response API schemas
+│   │   ├── prompts/                 # Versioned prompt templates (v1, v2)
+│   │   ├── services/
+│   │   │   ├── llm_service.py       # Gemini API / OpenAI API / Local Agent
+│   │   │   ├── rag_service.py       # FAISS vector store & semantic chunk index
+│   │   │   ├── pricing_service.py   # Deterministic authorative pricing
+│   │   │   ├── product_service.py   # Provider orchestration
+│   │   │   ├── prompt_service.py    # Versioned prompt loader
+│   │   │   ├── validation_service.py# Response guardrails & price verifier
+│   │   │   ├── voice_service.py     # Phonetic INR and SSML formatter
+│   │   │   └── conversation_service.py # Session state manager
+│   │   ├── services/providers/      # ProductProvider ABC, Mock & Shopify
+│   │   └── utils/language.py        # Hinglish/English NLU parser & regex
+│   ├── tests/                       # 23 automated pytest tests
+│   ├── requirements.txt             # Python dependencies
+│   └── .env.example                 # Backend environment template
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── VoiceButton.tsx      # Central animated microphone button
+│   │   │   ├── TranscriptPanel.tsx  # Live speech-to-text transcript panel
+│   │   │   ├── ProductCard.tsx      # Product card with badges & action triggers
+│   │   │   ├── ProductGrid.tsx      # Responsive product grid with category pills
+│   │   │   ├── ComparisonPanel.tsx  # Side-by-side comparison modal with TTS
+│   │   │   ├── ProductDetailsModal.tsx # Full specs & live coupon tester
+│   │   │   ├── ChatMessage.tsx      # Conversation chat stream with replay
+│   │   │   ├── DebugPanel.tsx       # Collapsible developer observability drawer
+│   │   │   └── DemoChips.tsx        # One-tap demo voice prompt chips
+│   │   ├── hooks/
+│   │   │   ├── useVoice.ts          # Web Speech STT, VAD silence timer & TTS
+│   │   │   └── useConversation.ts   # Chat memory & catalog state manager
+│   │   ├── services/api.ts          # Typed REST API client
+│   │   ├── types/                   # TypeScript models & interfaces
+│   │   ├── App.tsx                  # Main voice shopping interface
+│   │   └── index.css                # Tailwind CSS v4 & custom wave animations
+│   ├── package.json
+│   └── vite.config.ts
+├── README.md
+└── .gitignore
+```
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js v18+ & npm
-- Python 3.11+
+- **Node.js** v18+ & **npm**
+- **Python** 3.11+
 
-### Backend Setup
+### 1. Clone the Repository
+```bash
+git clone https://github.com/RahulK512005/vaanicard-ai-voice-agent.git
+cd vaanicard-ai-voice-agent
+```
 
+### 2. Backend Setup
 ```bash
 cd backend
 
-# Create or activate virtual environment (optional)
-# py -3.11 -m venv venv
-# .\venv\Scripts\Activate.ps1
+# Create and activate virtual environment (optional)
+# python -m venv venv
+# source venv/bin/activate  # On Windows: .\venv\Scripts\Activate.ps1
 
 # Install dependencies
-py -3.11 -m pip install -r requirements.txt
+pip install -r requirements.txt
 
 # Configure environment variables
-copy .env.example .env
+cp .env.example .env
 
 # Run FastAPI backend server
+# On Windows PowerShell:
 $env:PYTHONPATH="."
-py -3.11 -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Backend will be live at `http://127.0.0.1:8000`
-- Interactive OpenAPI Docs: `http://127.0.0.1:8000/docs`
-- Health check: `http://127.0.0.1:8000/health`
+- **Backend API**: `http://127.0.0.1:8000`
+- **Interactive OpenAPI Docs**: `http://127.0.0.1:8000/docs`
+- **Health Check**: `http://127.0.0.1:8000/health`
 
-### Frontend Setup
-
+### 3. Frontend Setup
+In a separate terminal:
 ```bash
 cd frontend
 
 # Install dependencies
 npm install
 
-# Run Vite dev server
+# Start Vite dev server
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
-Frontend will be live at `http://127.0.0.1:5173`
+- **Frontend Application**: **`http://127.0.0.1:5173/`**
 
 ---
 
-## 6. Environment Variables (`.env`)
+## 📡 REST API Reference
 
-| Variable | Default | Description |
-|---|---|---|
-| `APP_NAME` | `VaaniCart AI` | Application branding name |
-| `PORT` | `8000` | FastAPI server port |
-| `LLM_PROVIDER` | `gemini` | `gemini`, `openai`, or `local` (intelligent local fallback) |
-| `GEMINI_API_KEY` | `""` | Google Gemini API Key (optional; local agent runs if empty) |
-| `GEMINI_MODEL` | `gemini-1.5-flash` | Gemini model identifier |
-| `OPENAI_API_KEY` | `""` | OpenAI API Key (optional) |
-| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model identifier |
-| `PROMPT_VERSION_VOICE`| `v1` | Active voice prompt version (`v1` or `v2`) |
-| `PRODUCT_PROVIDER` | `mock` | Catalog provider (`mock` or `shopify`) |
-| `SHOPIFY_STORE_DOMAIN` | `""` | Shopify store domain for production transition |
-| `SHOPIFY_STOREFRONT_ACCESS_TOKEN` | `""` | Shopify Storefront API token |
+### Health Check
+- `GET /health`
+```json
+{
+  "status": "healthy",
+  "app_name": "VaaniCart AI",
+  "llm_provider": "gemini",
+  "catalog_provider": "mock",
+  "products_count": 42,
+  "rag_ready": true,
+  "rag_chunks_count": 84
+}
+```
+
+### Chat & Voice Pipeline
+- `POST /api/chat`
+```json
+// Request
+{
+  "query": "Running shoes dikhao under 3000",
+  "session_id": "sess_123",
+  "language_hint": "en-IN",
+  "voice_input": true
+}
+
+// Response
+{
+  "session_id": "sess_123",
+  "display_response": "I found 4 options for you. The top two are Sprint X Running Shoes at ₹2,499 and Runner Pro Cloud Stride at ₹2,799. Would you like me to compare them?",
+  "spoken_response": {
+    "text": "I found 4 options for you. The top two are Sprint X Running Shoes at 2,499 rupees and Runner Pro Cloud Stride at 2,799 rupees. Would you like me to compare them?",
+    "language_code": "en-IN",
+    "speech_rate": 1.0
+  },
+  "products": [...],
+  "suggested_actions": ["Compare Sprint X and Runner Pro", "Iska discount kitna hai?"],
+  "debug": {
+    "detected_intent": "product_search",
+    "extracted_entities": { "category": "Running Shoes", "max_price": 3000 },
+    "rag_used": false,
+    "latency": { "intent_ms": 0.4, "retrieval_ms": 0.2, "pricing_ms": 0.0, "llm_ms": 0.2, "validation_ms": 0.2, "total_ms": 9.5 }
+  }
+}
+```
+
+### Authoritative Price Calculation
+- `POST /api/calculate-price`
+```json
+// Request
+{
+  "product_id": "shoe_001",
+  "quantity": 1,
+  "coupon_code": "VAANI100"
+}
+
+// Response
+{
+  "product_id": "shoe_001",
+  "product_name": "Sprint X Running Shoes",
+  "original_mrp": 3999,
+  "base_price": 2499,
+  "unit_discount_amount": 1500,
+  "unit_discount_percentage": 37,
+  "coupon_code": "VAANI100",
+  "coupon_discount": 100,
+  "coupon_applied_success": true,
+  "final_payable": 2399,
+  "currency": "INR"
+}
+```
 
 ---
 
-## 7. REST API Reference
+## 🧪 Automated Testing Suite (23 Tests)
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/health` | Server status, catalog count, and FAISS index readiness |
-| `GET` | `/api/products` | List catalog products with pagination & category filter |
-| `GET` | `/api/products/{id}` | Get single product specifications and inventory |
-| `POST` | `/api/products/search` | Multi-facet catalog search (price, rating, size, color) |
-| `POST` | `/api/chat` | End-to-end voice shopping pipeline (STT $\rightarrow$ NLU $\rightarrow$ RAG $\rightarrow$ Pricing $\rightarrow$ TTS) |
-| `POST` | `/api/calculate-price` | Deterministic pricing with coupon code validation |
-| `POST` | `/api/compare` | Side-by-side product comparison matrix and spoken summary |
-| `POST` | `/api/recommend` | Top-rated recommendations |
-| `POST` | `/api/rag/query` | Direct semantic RAG retrieval on product specifications |
-| `POST` | `/api/conversation` | Create or fetch multi-turn conversation session |
-| `GET` | `/api/conversation/{id}`| Retrieve conversation history and active filter state |
-
----
-
-## 8. Deterministic Pricing & Coupons
-
-The backend engine strictly calculates:
-- Unit Discount: `MRP - Base Price`
-- Unit Discount %: `round((Discount / MRP) * 100)`
-- Active Coupons:
-  - `VAANI100`: Flat ₹100 OFF on orders $\ge$ ₹999.
-  - `FESTIVE20`: 20% OFF up to ₹500 on orders $\ge$ ₹1,499.
-  - `WELCOME50`: Flat ₹50 OFF on orders $\ge$ ₹499.
-- 18% GST estimate component.
-- Final net payable amount.
-
----
-
-## 9. Running Automated Tests
-
-Run the complete 23-test suite:
+The repository includes **23 automated tests** verified with `pytest`:
 
 ```bash
 cd backend
 $env:PYTHONPATH="."
-py -3.11 -m pytest tests -v
+pytest tests -v
 ```
 
-All 23 tests pass:
-- `test_product_search.py`: Category, max price, color, size, and ID lookup.
-- `test_pricing_engine.py`: Base calculation, quantities, flat coupons, percentage coupons, minimum order thresholds.
-- `test_intent_and_language.py`: Hinglish detection, price extraction, size extraction, color extraction, intent classification.
-- `test_rag_and_validation.py`: Noise cancellation search, battery life search, sentence count truncation, markdown list scrubbing.
-- `test_conversation_flow.py`: Multi-turn conversational context retention, pronoun resolution, and voice formatting.
+```
+tests/test_conversation_flow.py::test_voice_text_cleaning PASSED         [  4%]
+tests/test_conversation_flow.py::test_multi_turn_voice_flow PASSED       [  8%]
+tests/test_intent_and_language.py::test_hinglish_language_detection PASSED [ 13%]
+tests/test_intent_and_language.py::test_price_extraction PASSED          [ 17%]
+tests/test_intent_and_language.py::test_size_extraction PASSED           [ 21%]
+tests/test_intent_and_language.py::test_color_extraction PASSED          [ 26%]
+tests/test_intent_and_language.py::test_category_matching PASSED         [ 30%]
+tests/test_intent_and_language.py::test_intent_detection PASSED          [ 34%]
+tests/test_pricing_engine.py::test_basic_price_and_discount_calculation PASSED [ 39%]
+tests/test_pricing_engine.py::test_quantity_multiplier PASSED            [ 43%]
+tests/test_pricing_engine.py::test_flat_coupon_application PASSED        [ 47%]
+tests/test_pricing_engine.py::test_percentage_coupon_application PASSED  [ 52%]
+tests/test_pricing_engine.py::test_invalid_coupon PASSED                 [ 56%]
+tests/test_pricing_engine.py::test_minimum_order_restriction PASSED      [ 60%]
+tests/test_product_search.py::test_search_by_category PASSED             [ 65%]
+tests/test_product_search.py::test_search_with_max_price PASSED          [ 69%]
+tests/test_product_search.py::test_search_by_color PASSED                [ 73%]
+tests/test_product_search.py::test_search_by_shoe_size PASSED            [ 78%]
+tests/test_product_search.py::test_get_by_id_found_and_not_found PASSED  [ 82%]
+tests/test_rag_and_validation.py::test_rag_semantic_search_noise_cancellation PASSED [ 86%]
+tests/test_rag_and_validation.py::test_rag_semantic_search_battery_life PASSED [ 91%]
+tests/test_rag_and_validation.py::test_response_validation_sentence_length_limit PASSED [ 95%]
+tests/test_rag_and_validation.py::test_response_validation_markdown_cleaning PASSED [100%]
+
+======================= 23 passed, 3 warnings in 7.80s ========================
+```
 
 ---
 
-## 10. Manual Voice AI Test Checklist
+## 📋 Manual Voice AI Test Checklist
 
-| # | Test Scenario | Spoken Input | Expected Behavior |
-|---|---|---|---|
-| 1 | English query | *"Show me running shoes under 3000"* | Returns filtered running shoes $\le$ ₹3,000; speaks top 2 options. |
-| 2 | Hinglish query | *"Mujhe 3000 ke andar running shoes chahiye"* | Detects category & price constraint without forced translation. |
-| 3 | Price query | *"Sprint X ka price kitna hai?"* | Spoken response quotes verified price ₹2,499. |
-| 4 | Discount query | *"Iska discount kitna hai?"* | Retains context product, explains 37% discount from ₹3,999. |
-| 5 | Product comparison | *"Compare Sprint X and Runner Pro"* | Opens side-by-side comparison modal and speaks price trade-off. |
-| 6 | Recommendation | *"Budget 2500 hai, kuch achha suggest karo"* | Filters products $\le$ ₹2,500 with rating $\ge$ 4.4. |
-| 7 | Availability check | *"Ye shoes size 9 mein available hai kya?"* | Checks size array of current product, confirms in-stock status. |
-| 8 | Complex RAG query | *"Which headphones have noise cancellation?"* | FAISS semantic search retrieves AcousticPro 800 (-40dB ANC). |
-| 9 | Multi-turn follow-up | 1. *"Mujhe sneakers chahiye"*<br/>2. *"Under 2500"* | Merges category filter from Turn 1 with budget from Turn 2. |
-| 10 | Voice interruption | Tap microphone while TTS is speaking | SpeechSynthesis halts immediately and re-opens microphone. |
+| # | Test Scenario | Voice / Text Input | Expected System Behavior |
+|:---|:---|:---|:---|
+| 1 | **English Search** | *"Show me running shoes under 3000"* | Filters running shoes $\le$ ₹3,000; speaks top 2 options with prices. |
+| 2 | **Hinglish Search** | *"Mujhe 3000 ke andar running shoes chahiye"* | Accurately maps intent to `product_search` without forced translation. |
+| 3 | **Price Query** | *"Sprint X ka price kitna hai?"* | Answers with verified price ₹2,499 and MRP ₹3,999. |
+| 4 | **Discount Query** | *"Iska discount kitna hai?"* | Resolves pronoun to active product, reports 37% discount. |
+| 5 | **Product Comparison** | *"Compare Sprint X and Runner Pro"* | Opens comparison modal and speaks price trade-off. |
+| 6 | **Recommendation** | *"Budget 2500 hai, kuch achha suggest karo"* | Filters products $\le$ ₹2,500 with rating $\ge$ 4.2. |
+| 7 | **Availability Query** | *"Ye shoes size 9 mein available hai kya?"* | Checks size availability in stock (confirms in-stock status). |
+| 8 | **RAG Spec Query** | *"Which headphones have noise cancellation?"* | FAISS retrieves AcousticPro 800 (-40dB ANC). |
+| 9 | **Multi-Turn Follow-Up** | Turn 1: *"Mujhe sneakers chahiye"*<br/>Turn 2: *"Under 2500"* | Retains category from Turn 1 and merges price filter in Turn 2. |
+| 10 | **Speech Interruption** | Tap mic while assistant is speaking | Halts TTS playback immediately and starts listening. |
 
 ---
 
-## 11. Shopify Migration Guide
+## 🚢 Deployment Guide
 
-To connect a live Shopify store:
-1. Open `backend/app/services/providers/shopify_provider.py`.
-2. Configure credentials in `.env`:
-   ```env
-   PRODUCT_PROVIDER=shopify
-   SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
-   SHOPIFY_STOREFRONT_ACCESS_TOKEN=shpat_xxxxxxxx
-   ```
-3. The `ProductProvider` interface ensures zero changes to the LLM agent, NLU, or pricing engine.
+### Deploy Backend to Render (Free Tier)
+1. Link your GitHub repository in [Render Dashboard](https://dashboard.render.com).
+2. Create **Web Service**:
+   - **Root Directory**: `backend`
+   - **Environment**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+3. Add Environment Variables:
+   - `GEMINI_API_KEY`: *(Your Google AI Studio API Key)*
+   - `LLM_PROVIDER`: `gemini`
+   - `CORS_ORIGINS`: `["https://your-frontend.vercel.app"]`
+
+### Deploy Frontend to Vercel (Free Tier)
+1. Link your GitHub repository in [Vercel Dashboard](https://vercel.com).
+2. Configure settings:
+   - **Root Directory**: `frontend`
+   - **Framework Preset**: `Vite`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+3. Add Environment Variable:
+   - `VITE_API_URL`: `https://your-backend.onrender.com`
+4. Click **Deploy**.
+
+---
+
+<div align="center">
+
+Built with ❤️ for Indian Voice Commerce • **VaaniCart AI**
+
+</div>
