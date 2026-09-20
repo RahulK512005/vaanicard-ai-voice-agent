@@ -1,7 +1,15 @@
 import { Product, PriceCalculation } from '../types/product';
 import { ChatResponse } from '../types/conversation';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Auto-detect production deployment (Vercel) vs local development
+const isLocalhost =
+  typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+const DEFAULT_REMOTE_API = 'https://vaanicard-ai-voice-agent.onrender.com';
+const DEFAULT_LOCAL_API = 'http://localhost:8000';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || (isLocalhost ? DEFAULT_LOCAL_API : DEFAULT_REMOTE_API);
 
 export async function checkHealth() {
   const res = await fetch(`${API_BASE_URL}/health`);

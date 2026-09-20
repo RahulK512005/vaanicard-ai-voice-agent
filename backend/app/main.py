@@ -32,15 +32,31 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS configuration
-origins = settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else ["*"]
+# CORS configuration - Allow localhost, 127.0.0.1, all Vercel domains and preview URLs
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins or ["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+        "https://vaanicard-ai-voice-agent.vercel.app"
+    ],
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+async def root():
+    return {
+        "status": "online",
+        "app_name": settings.APP_NAME,
+        "tagline": settings.APP_TAGLINE,
+        "health": "/health",
+        "docs": "/docs"
+    }
 
 # Include API Routers
 app.include_router(health.router)
