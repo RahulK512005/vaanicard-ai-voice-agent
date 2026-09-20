@@ -2,13 +2,15 @@ import { useState, useCallback, useEffect } from 'react';
 import { ChatMessage, DebugInfo } from '../types/conversation';
 import { Product, ComparisonData } from '../types/product';
 import { sendChatMessage, fetchProducts } from '../services/api';
+import { fallbackProducts } from '../data/fallbackProducts';
 
 export function useConversation() {
   const [sessionId, setSessionId] = useState<string>(() => {
     return localStorage.getItem('vaanicart_session_id') || `sess_${Date.now()}`;
   });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
+  // Immediately initialize with fallback products so user never sees a blank screen
+  const [displayedProducts, setDisplayedProducts] = useState<Product[]>(() => fallbackProducts.slice(0, 12));
   const [comparison, setComparison] = useState<ComparisonData | null>(null);
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const [activeProductId, setActiveProductId] = useState<string | undefined>();
@@ -18,11 +20,15 @@ export function useConversation() {
     localStorage.setItem('vaanicart_session_id', sessionId);
   }, [sessionId]);
 
-  // Load initial catalog on mount
+  // Sync with live backend catalog on mount
   useEffect(() => {
-    fetchProducts(undefined, 8)
-      .then(prods => setDisplayedProducts(prods))
-      .catch(err => console.warn('Could not load initial catalog:', err));
+    fetchProducts(undefined, 12)
+      .then(prods => {
+        if (prods && prods.length > 0) {
+          setDisplayedProducts(prods);
+        }
+      })
+      .catch(err => console.warn('Could not load initial catalog from server:', err));
   }, []);
 
   const processQuery = useCallback(async (
